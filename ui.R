@@ -1,7 +1,7 @@
 library(shiny)
 
 
-shinyUI(bootstrapPage(
+shinyUI(pageWithSidebar(
 
 
     headerPanel("ANOVA"),
@@ -10,7 +10,7 @@ shinyUI(bootstrapPage(
     sidebarPanel(
 
         p('This web application is completely based on the source code of',
-        a("anovakun.", href="http://www11.atpages.jp/~riseki/pukiwikiplus/index.php?ANOVA%B7%AF", target="_blank"),
+        a("anovakun.", href="http://riseki.php.xdomain.jp/index.php?ANOVA%E5%90%9B", target="_blank"),
         ''),
 
         br(),
@@ -63,15 +63,26 @@ tabsetPanel(
             br(),
 
             h3("Output"),
-            verbatimTextOutput("anovakun.out")
+            verbatimTextOutput("anovakun.out"),
+
+            br(),
+            h3("Plot"),
+            downloadButton('downloadANOVAPlot1', 'Download the Factor 1 plot as pdf'), br(),
+
+            conditionalPanel(condition = "input.factor == 'twoway'",
+                downloadButton('downloadANOVAPlot2', 'Download the Factor 2 plot as pdf')
+            ),
+
+            radioButtons("axis", "y-axis",
+                list("Default" = "default", "Min-Max" = "min.max"), 'Default'),
+            plotOutput("AnovaPlot1", width="80%"),
+            plotOutput("AnovaPlot2", width="80%")
 
             ),
 
 
 
-
-
-tabPanel("Input Samples",
+tabPanel("Input Examples",
 
 p('Note: Input values must be separated by tabs. Copy and paste from Excel/Numbers.'),
 
@@ -100,7 +111,7 @@ aceEditor("text4", value="Method\tPre\tPost\tDelayed\n1\t31\t48\t30\n1\t39\t51\t
 
 br(),
 p(strong("Two-way ANOVA (Witin Subjects[2 levels] * Within Subjects [3 levels])")),
-aceEditor("text5", value="TypeA.Pre\tTypeA.Post\tTypeA.Delayed\tTypeB.Pre\tTypeB.Post\tTypeBA.Delayed\n44\t120\t153\t51\t100\t110\n61\t119\t148\t62\t109\t117\n67\t157\t167\t56\t134\t139\n60\t153\t175\t57\t140\t161\n61\t139\t162\t59\t126\t137",
+aceEditor("text5", value="TypeA.Pre\tTypeA.Post\tTypeA.Delayed\tTypeB.Pre\tTypeB.Post\tTypeB.Delayed\n44\t120\t153\t51\t100\t110\n61\t119\t148\t62\t109\t117\n67\t157\t167\t56\t134\t139\n60\t153\t175\t57\t140\t161\n61\t139\t162\t59\t126\t137\n55\t130\t161\t67\t120\t155\n73\t135\t172\t61\t122\t162\n55\t122\t144\t73\t115\t145\n62\t144\t165\t62\t110\t162\n60\t155\t172\t52\t103\t159",
 mode="r", theme="solarized_light"),
 
 br()
@@ -121,9 +132,19 @@ br()
 
             br(),
 
+            strong('List of Packages Used'), br(),
+            code('library(shiny)'),br(),
+            code('library(shinyAce)'),br(),
+            code('library(sciplot)'),br(),
+
+            br(),
+
             strong('Code'),
-            p('Source code for this application is based on',
+            p('Examples are based on',
             a('"The handbook of Research in Foreign Language Learning and Teaching" (Takeuchi & Mizumoto, 2012).', href='http://mizumot.com/handbook/', target="_blank")),
+
+            p('Source code for this application is based on',
+            a('anovakun.', href="http://riseki.php.xdomain.jp/index.php?ANOVA%E5%90%9B", target="_blank")),
 
             p('The code for this web application is available at',
             a('GitHub.', href='https://github.com/mizumot/anova', target="_blank")),
