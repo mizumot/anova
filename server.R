@@ -2423,6 +2423,7 @@ shinyServer(function(input, output) {
 
 
     makeANOVAPlot1 <- function(){
+        
         if (input$axis == "default") {
             
             if (input$factor == "oneway") {
@@ -2550,7 +2551,7 @@ shinyServer(function(input, output) {
                 }
             }
             
-        } else { # y-axis min-max
+        } else if (input$axis == "min.max") { # y-axis min-max
             
             if (input$factor == "oneway") {
                 
@@ -2683,6 +2684,155 @@ shinyServer(function(input, output) {
                     scale_shape_discrete(name  ="Factor 2")
                 }
             }
+        
+        } else { # y-axis "define"
+            
+            if (input$factor == "oneway") {
+                
+                if (input$one.design == "Between") {
+                    dat <- read.csv(text=input$text, sep="\t")
+                    
+                    fac1 <- as.factor(dat[,1])
+                    res <- dat[,2]
+                    
+                    dfn.min <- input$dfn.min
+                    dfn.max <- input$dfn.max
+                    
+                    lineplot.CI(x.factor = fac1, response = res, ylim=c(dfn.min, dfn.max),
+                    ci.fun=function(x) c(mean(x)-1.96*se(x), mean(x)+1.96*se(x)),
+                    xlab="Level", ylab="", main="Factor 1 (Error bars show 95% CI)")
+                    
+                } else {  # Within = "sA"
+                    dat <- read.csv(text=input$text, sep="\t")
+                    
+                    dat <- reshape(dat, varying=1:length(dat), v.names="score", direction = "long")
+                    fac1 <- as.factor(dat[,1])
+                    res <- dat[,2]
+                    
+                    dfn.min <- input$dfn.min
+                    dfn.max <- input$dfn.max
+                    
+                    lineplot.CI(x.factor = fac1, response = res, ylim=c(dfn.min, dfn.max),
+                    ci.fun=function(x) c(mean(x)-1.96*se(x), mean(x)+1.96*se(x)),
+                    xlab="Level", ylab="", main="Factor 1 (Error bars show 95% CI)")
+                    
+                }
+                
+            } else { # Two-way ANOVA
+                
+                if (input$two.design == "Factor1Between_Factor2Between") {
+                    dat <- read.csv(text=input$text, sep="\t")
+                    
+                    dat[,1] <- as.factor(dat[,1])
+                    dat[,2] <- as.factor(dat[,2])
+                    names(dat) <- c("fac1", "fac2", "res")
+                    
+                    df <- with(dat, aggregate(res, list(fac1=fac1, fac2=fac2), mean))
+                    ci <- with(dat , aggregate(res, list(fac1=fac1, fac2=fac2), function(x) qt(0.975,length(x)-1)*sd(x)/sqrt(length(x))))
+                    df$ci <- ci[,3]
+                    
+                    dfn.min <- input$dfn.min
+                    dfn.max <- input$dfn.max
+                    
+                    opar <- theme_update(panel.grid.major = element_blank(),
+                    panel.grid.minor = element_blank(),
+                    panel.background = element_rect(colour = "black"))
+                    xgap <- position_dodge(0.15)
+                    gp <- ggplot(df, aes(x=fac1, y=x, colour=fac2, group=fac2))
+                    gp + geom_line(aes(linetype=fac2), size=.6, position=xgap) +
+                    geom_point(aes(shape=fac2), size=4, position=xgap) +
+                    geom_errorbar(aes(ymax=x+ci, ymin=x-ci), width=.1, position=xgap) +
+                    labs(title = "Factor 1 (Error bars show 95% CI)", x = "Level", y = "") +
+                    
+                    ylim(dfn.min, dfn.max) +
+                    
+                    theme(plot.title=element_text(size=18), axis.title.x = element_text(size=18), axis.title.y = element_text(size=18),
+                    axis.text.x = element_text(size=18), axis.text.y = element_text(size=18),
+                    legend.position = c(1, 1), legend.justification = c(1, 1), legend.key = element_rect(fill = "white",colour = "white"),
+                    legend.title = element_text(size=16), legend.text = element_text(size = 16)) +
+                    scale_colour_discrete(name  ="Factor 2") +
+                    scale_linetype_discrete(name  ="Factor 2") +
+                    scale_shape_discrete(name  ="Factor 2")
+                    
+                } else if (input$two.design == "Factor1Between_Factor2Within") {
+                    dat <- read.csv(text=input$text, sep="\t")
+                    
+                    z <- reshape(dat, varying=2:length(dat), v.names="score", direction = "long")
+                    res <- z[,3]
+                    names(z) <- c("fac1", "fac2", "res")
+                    df <- with(z, aggregate(res, list(fac1=fac1, fac2=fac2), mean))
+                    ci <- with(z , aggregate(res, list(fac1=fac1, fac2=fac2), function(x) qt(0.975,length(x)-1)*sd(x)/sqrt(length(x))))
+                    df$ci <- ci[,3]
+                    df$fac1 <- factor(df[,1])
+                    df$fac2 <- factor(df[,2])
+                    
+                    dfn.min <- input$dfn.min
+                    dfn.max <- input$dfn.max
+                    
+                    opar <- theme_update(panel.grid.major = element_blank(),
+                    panel.grid.minor = element_blank(),
+                    panel.background = element_rect(colour = "black"))
+                    xgap <- position_dodge(0.15)
+                    gp <- ggplot(df, aes(x=fac1, y=x, colour=fac2, group=fac2))
+                    gp + geom_line(aes(linetype=fac2), size=.6, position=xgap) +
+                    geom_point(aes(shape=fac2), size=4, position=xgap) +
+                    geom_errorbar(aes(ymax=x+ci, ymin=x-ci), width=.1, position=xgap) +
+                    ylim(dfn.min, dfn.max) +
+                    labs(title = "Factor 1 (Error bars show 95% CI)", x = "Level", y = "") +
+                    theme(plot.title=element_text(size=18), axis.title.x = element_text(size=18), axis.title.y = element_text(size=18),
+                    axis.text.x = element_text(size=18), axis.text.y = element_text(size=18),
+                    legend.position = c(1, 1), legend.justification = c(1, 1), legend.key = element_rect(fill = "white",colour = "white"),
+                    legend.title = element_text(size=16), legend.text = element_text(size = 16)) +
+                    scale_colour_discrete(name  ="Factor 2") +
+                    scale_linetype_discrete(name  ="Factor 2") +
+                    scale_shape_discrete(name  ="Factor 2")
+                    
+                } else { # input$two.design == "Factor1Within_Factor2Within"
+                    z <- read.csv(text=input$text, sep="\t")
+                    
+                    nlva <- input$factor1.level # factor A の水準
+                    nlvb <- input$factor2.level # factor B の水準
+                    
+                    dat <- reshape(z, varying=1:ncol(z), v.names="res", direction = "long")
+                    
+                    anms <- paste("a", 1:nlva, sep = "")
+                    anms <- rep(anms, each = nrow(dat)/nlva, length.out = nrow(dat))
+                    fac1 <- anms
+                    dat <- cbind(dat, fac1)
+                    
+                    bnms <- paste("b", 1:nlvb, sep = "")
+                    bnms <- rep(bnms, each = nrow(z), length.out = nrow(dat))
+                    fac2 <- bnms
+                    dat <- cbind(dat, fac2)
+                    
+                    df <- with(dat, aggregate(res, list(fac1=fac1, fac2=fac2), mean))
+                    ci <- with(dat, aggregate(res, list(fac1=fac1, fac2=fac2), function(x) qt(0.975,length(x)-1)*sd(x)/sqrt(length(x))))
+                    df$ci <- ci[,3]
+                    df$fac1 <- factor(df[,1])
+                    df$fac2 <- factor(df[,2])
+                    
+                    dfn.min <- input$dfn.min
+                    dfn.max <- input$dfn.max
+                    
+                    opar <- theme_update(panel.grid.major = element_blank(),
+                    panel.grid.minor = element_blank(),
+                    panel.background = element_rect(colour = "black"))
+                    xgap <- position_dodge(0.15)
+                    gp <- ggplot(df, aes(x=fac1, y=x, colour=fac2, group=fac2))
+                    gp + geom_line(aes(linetype=fac2), size=.6, position=xgap) +
+                    geom_point(aes(shape=fac2), size=4, position=xgap) +
+                    geom_errorbar(aes(ymax=x+ci, ymin=x-ci), width=.1, position=xgap) +
+                    labs(title = "Factor 1 (Error bars show 95% CI)", x = "Level", y = "") +
+                    ylim(dfn.min, dfn.max) +
+                    theme(plot.title=element_text(size=18), axis.title.x = element_text(size=18), axis.title.y = element_text(size=18),
+                    axis.text.x = element_text(size=18), axis.text.y = element_text(size=18),
+                    legend.position = c(1, 1), legend.justification = c(1, 1), legend.key = element_rect(fill = "white",colour = "white"),
+                    legend.title = element_text(size=16), legend.text = element_text(size = 16)) +
+                    scale_colour_discrete(name  ="Factor 2") +
+                    scale_linetype_discrete(name  ="Factor 2") +
+                    scale_shape_discrete(name  ="Factor 2")
+                }
+            }
         }
     }
 
@@ -2802,8 +2952,8 @@ shinyServer(function(input, output) {
                 cat("\n")
                 
             }
-            
-        } else { # y-axis min-max
+        
+        } else if (input$axis == "min.max") { # y-axis min-max
             
             if (input$factor == "twoway") {
                 if (input$two.design == "Factor1Between_Factor2Between") {
@@ -2915,9 +3065,132 @@ shinyServer(function(input, output) {
                 cat("\n")
                 
             }
+        
+        } else { # y-axis "define"
+            
+            if (input$factor == "twoway") {
+                if (input$two.design == "Factor1Between_Factor2Between") {
+                    dat <- read.csv(text=input$text, sep="\t")
+                    
+                    dat[,1] <- as.factor(dat[,1])
+                    dat[,2] <- as.factor(dat[,2])
+                    names(dat) <- c("fac1", "fac2", "res")
+                    
+                    dfn.min <- input$dfn.min
+                    dfn.max <- input$dfn.max
+                    
+                    df <- with(dat, aggregate(res, list(fac1=fac1, fac2=fac2), mean))
+                    ci <- with(dat , aggregate(res, list(fac1=fac1, fac2=fac2), function(x) qt(0.975,length(x)-1)*sd(x)/sqrt(length(x))))
+                    df$ci <- ci[,3]
+                    
+                    opar <- theme_update(panel.grid.major = element_blank(),
+                    panel.grid.minor = element_blank(),
+                    panel.background = element_rect(colour = "black"))
+                    xgap <- position_dodge(0.15)
+                    gp <- ggplot(df, aes(x=fac2, y=x, colour=fac1, group=fac1))
+                    gp + geom_line(aes(linetype=fac1), size=.6, position=xgap) +
+                    geom_point(aes(shape=fac1), size=4, position=xgap) +
+                    geom_errorbar(aes(ymax=x+ci, ymin=x-ci), width=.1, position=xgap) +
+                    
+                    ylim(dfn.min, dfn.max) +
+                    
+                    labs(title = "Factor 2 (Error bars show 95% CI)", x = "Level", y = "") +
+                    theme(plot.title=element_text(size=18), axis.title.x = element_text(size=18), axis.title.y = element_text(size=18),
+                    axis.text.x = element_text(size=18), axis.text.y = element_text(size=18),
+                    legend.position = c(1, 1), legend.justification = c(1, 1), legend.key = element_rect(fill = "white",colour = "white"),
+                    legend.title = element_text(size=16), legend.text = element_text(size = 16)) +
+                    scale_colour_discrete(name  ="Factor 1") +
+                    scale_linetype_discrete(name  ="Factor 1") +
+                    scale_shape_discrete(name  ="Factor 1")
+                    
+                } else if (input$two.design == "Factor1Between_Factor2Within") {
+                    dat <- read.csv(text=input$text, sep="\t")
+                    
+                    dat <- reshape(dat, varying=2:length(dat), v.names="score", direction = "long")
+                    res <- dat[,3]
+                    names(dat) <- c("fac1", "fac2", "res")
+                    
+                    dfn.min <- input$dfn.min
+                    dfn.max <- input$dfn.max
+                    
+                    df <- with(dat, aggregate(res, list(fac1=fac1, fac2=fac2), mean))
+                    ci <- with(dat , aggregate(res, list(fac1=fac1, fac2=fac2), function(x) qt(0.975,length(x)-1)*sd(x)/sqrt(length(x))))
+                    df$ci <- ci[,3]
+                    df$fac1 <- factor(df[,1])
+                    df$fac2 <- factor(df[,2])
+                    
+                    opar <- theme_update(panel.grid.major = element_blank(),
+                    panel.grid.minor = element_blank(),
+                    panel.background = element_rect(colour = "black"))
+                    xgap <- position_dodge(0.15)
+                    gp <- ggplot(df, aes(x=fac2, y=x, colour=fac1, group=fac1))
+                    gp + geom_line(aes(linetype=fac1), size=.6, position=xgap) +
+                    geom_point(aes(shape=fac1), size=4, position=xgap) +
+                    geom_errorbar(aes(ymax=x+ci, ymin=x-ci), width=.1, position=xgap) +
+                    labs(title = "Factor 2 (Error bars show 95% CI)", x = "Level", y = "") +
+                    ylim(dfn.min, dfn.max) +
+                    theme(plot.title=element_text(size=18), axis.title.x = element_text(size=18), axis.title.y = element_text(size=18),
+                    axis.text.x = element_text(size=18), axis.text.y = element_text(size=18),
+                    legend.position = c(1, 1), legend.justification = c(1, 1), legend.key = element_rect(fill = "white",colour = "white"),
+                    legend.title = element_text(size=16), legend.text = element_text(size = 16)) +
+                    scale_colour_discrete(name  ="Factor 1") +
+                    scale_linetype_discrete(name  ="Factor 1") +
+                    scale_shape_discrete(name  ="Factor 1")
+                    
+                } else { # input$two.design == "Factor1Within_Factor2Within"
+                    z <- read.csv(text=input$text, sep="\t")
+                    
+                    nlva <- input$factor1.level # factor A の水準
+                    nlvb <- input$factor2.level # factor B の水準
+                    
+                    dat <- reshape(z, varying=1:ncol(z), v.names="res", direction = "long")
+                    
+                    anms <- paste("a", 1:nlva, sep = "")
+                    anms <- rep(anms, each = nrow(dat)/nlva, length.out = nrow(dat))
+                    fac1 <- anms
+                    dat <- cbind(dat, fac1)
+                    
+                    bnms <- paste("b", 1:nlvb, sep = "")
+                    bnms <- rep(bnms, each = nrow(z), length.out = nrow(dat))
+                    fac2 <- bnms
+                    dat <- cbind(dat, fac2)
+                    
+                    dfn.min <- input$dfn.min
+                    dfn.max <- input$dfn.max
+                    
+                    df <- with(dat, aggregate(res, list(fac1=fac1, fac2=fac2), mean))
+                    ci <- with(dat , aggregate(res, list(fac1=fac1, fac2=fac2), function(x) qt(0.975,length(x)-1)*sd(x)/sqrt(length(x))))
+                    df$ci <- ci[,3]
+                    df$fac1 <- factor(df[,1])
+                    df$fac2 <- factor(df[,2])
+                    
+                    opar <- theme_update(panel.grid.major = element_blank(),
+                    panel.grid.minor = element_blank(),
+                    panel.background = element_rect(colour = "black"))
+                    xgap <- position_dodge(0.15)
+                    gp <- ggplot(df, aes(x=fac2, y=x, colour=fac1, group=fac1))
+                    gp + geom_line(aes(linetype=fac1), size=.6, position=xgap) +
+                    geom_point(aes(shape=fac1), size=4, position=xgap) +
+                    geom_errorbar(aes(ymax=x+ci, ymin=x-ci), width=.1, position=xgap) +
+                    labs(title = "Factor 2 (Error bars show 95% CI)", x = "Level", y = "") +
+                    ylim(dfn.min, dfn.max) +
+                    theme(plot.title=element_text(size=18), axis.title.x = element_text(size=18), axis.title.y = element_text(size=18),
+                    axis.text.x = element_text(size=18), axis.text.y = element_text(size=18),
+                    legend.position = c(1, 1), legend.justification = c(1, 1), legend.key = element_rect(fill = "white",colour = "white"),
+                    legend.title = element_text(size=16), legend.text = element_text(size = 16)) +
+                    scale_colour_discrete(name  ="Factor 1") +
+                    scale_linetype_discrete(name  ="Factor 1") +
+                    scale_shape_discrete(name  ="Factor 1")
+                }
+                
+            } else {
+                
+                cat("\n")
+                
+                }
         }
     }
-    
+
     output$AnovaPlot2 <- renderPlot({
         print(makeANOVAPlot2())
     })
@@ -2933,24 +3206,4 @@ shinyServer(function(input, output) {
         check()
     })
     
-    output$downloadANOVAPlot1 <- downloadHandler(
-    filename = function() {
-        paste('Plot1-', Sys.Date(), '.pdf', sep='')
-    },
-    content = function(FILE=NULL) {
-        pdf(file=FILE)
-		print(makeANOVAPlot1())
-		dev.off()
-	})
-    
-    output$downloadANOVAPlot2 <- downloadHandler(
-    filename = function() {
-        paste('Plot2-', Sys.Date(), '.pdf', sep='')
-    },
-    content = function(FILE=NULL) {
-        pdf(file=FILE)
-		print(makeANOVAPlot2())
-		dev.off()
-	})
-
 })
