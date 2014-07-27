@@ -1,4 +1,7 @@
 library(shiny)
+library(shinyAce)
+library(sciplot)
+library(ggplot2)
 
 
 shinyUI(pageWithSidebar(
@@ -20,7 +23,7 @@ shinyUI(pageWithSidebar(
 
         radioButtons("factor", strong("Factors:"),
                 list("One-way ANOVA" = "oneway",
-                    "Two-way ANOVA" = "twoway"), 'Two-way ANOVA'),
+                    "Two-way ANOVA" = "twoway"), selected = "twoway"),
                 conditionalPanel(
                         condition = "input.factor == 'oneway'",
                         selectInput("one.design", "Design:",
@@ -67,14 +70,17 @@ tabsetPanel(
 
             br(),
             h3("Plot"),
-            downloadButton('downloadANOVAPlot1', 'Download the Factor 1 plot as pdf'), br(),
-
-            conditionalPanel(condition = "input.factor == 'twoway'",
-                downloadButton('downloadANOVAPlot2', 'Download the Factor 2 plot as pdf')
-            ),
+            br(),
 
             radioButtons("axis", "y-axis",
-                list("Default" = "default", "Min-Max" = "min.max"), 'Default'),
+                list("Default" = "default", "Min-Max" = "min.max", "Define" = "dfn"), selected = "default"),
+
+            # Display this only if "Define" is checked
+            conditionalPanel(condition = "input.axis == 'dfn'",
+                            		numericInput("dfn.min", "Min:", 10),
+                            		numericInput("dfn.max", "Max:", 100)
+            ),
+
             plotOutput("AnovaPlot1", width="80%"),
             plotOutput("AnovaPlot2", width="80%")
 
