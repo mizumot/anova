@@ -17,7 +17,7 @@ shinyServer(function(input, output) {
         dat <- read.csv(text=input$text, sep="\t")
     
     #--------------------------------------------------------------
-    # ここからANOVA君の関数貼付け
+    # ここからANOVA君
     # anovakun_451.txt（2014-0303）
     
         # 【ANOVA君：要因計画のタイプと水準数を入力することにより，分散分析を行う関数】

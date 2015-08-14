@@ -142,6 +142,7 @@ br()
             code('library(shiny)'),br(),
             code('library(shinyAce)'),br(),
             code('library(sciplot)'),br(),
+            code('library(ggplot2)'),br(),
 
             br(),
 
