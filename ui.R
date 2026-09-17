@@ -12,7 +12,7 @@ shinyUI(pageWithSidebar(
     sidebarPanel(
 
         p('This web application is completely based on the source code of',
-        a("anovakun.", href="http://riseki.php.xdomain.jp/index.php?ANOVA%E5%90%9B", target="_blank"),
+        a("anovakun.", href="https://riseki.cloudfree.jp/?ANOVA%E5%90%9B", target="_blank"),
         ''),
 
         br(),
@@ -36,11 +36,26 @@ shinyUI(pageWithSidebar(
 
         p(strong("Levels")),
 
-        numericInput("factor1.level", "Number of levels in Factor 1:", 2),
+        numericInput("factor1.level", "Number of levels in Factor 1:", 2, min = 2, step = 1),
 
         conditionalPanel(condition = "input.factor == 'twoway'",
-                numericInput("factor2.level", "Number of levels in Factor 2:", 3)
+                numericInput("factor2.level", "Number of levels in Factor 2:", 3, min = 2, step = 1)
                 ),
+
+        conditionalPanel(
+            condition = "(input.factor == 'oneway' && input['one.design'] == 'Within') || (input.factor == 'twoway' && input['two.design'] == 'Factor1Within_Factor2Within')",
+            textInput("factor1.name", "Factor 1 name:", "Condition")
+        ),
+
+        conditionalPanel(
+            condition = "input.factor == 'twoway' && input['two.design'] != 'Factor1Between_Factor2Between'",
+            textInput("factor2.name", "Factor 2 name:", "Time")
+        ),
+
+        conditionalPanel(
+            condition = "(input.factor == 'oneway' && input['one.design'] == 'Within') || (input.factor == 'twoway' && input['two.design'] != 'Factor1Between_Factor2Between')",
+            textInput("outcome.name", "Outcome name:", "Score")
+        ),
 
         br()
 
@@ -56,16 +71,41 @@ tabsetPanel(
         tabPanel("Main",
 
             p('Note: Input values must be separated by tabs. Copy and paste from Excel/Numbers.'),
+            p('A matching sample dataset is loaded automatically when the analysis design changes. Replace it with your own data as needed.'),
 
             p(HTML("<b><div style='background-color:#FADDF2;border:1px solid black;'>Please make sure that your data includes the header (variable names) in the first row.</div></b>")),
 
             aceEditor("text", value="Method\tPre\tPost\tDelayed\n1\t31\t48\t30\n1\t39\t51\t44\n1\t56\t67\t58\n1\t47\t44\t50\n1\t29\t33\t47\n1\t37\t41\t43\n1\t46\t43\t55\n1\t37\t53\t42\n1\t38\t64\t49\n1\t30\t52\t33\n1\t33\t53\t43\n1\t33\t44\t40\n1\t31\t39\t44\n1\t25\t32\t31\n1\t51\t62\t57\n1\t31\t43\t38\n1\t56\t59\t59\n1\t18\t19\t22\n1\t35\t46\t37\n1\t30\t50\t35\n1\t46\t62\t62\n1\t35\t45\t43\n1\t43\t58\t51\n1\t40\t49\t53\n1\t46\t58\t51\n1\t50\t66\t69\n1\t39\t44\t54\n1\t45\t64\t44\n1\t22\t45\t41\n1\t33\t53\t44\n2\t36\t42\t31\n2\t39\t41\t38\n2\t39\t44\t42\n2\t42\t30\t30\n2\t17\t13\t27\n2\t38\t32\t32\n2\t39\t27\t33\n2\t35\t41\t38\n2\t39\t55\t55\n2\t29\t42\t35\n2\t32\t43\t44\n2\t53\t49\t46\n2\t44\t39\t43\n2\t45\t38\t34\n2\t40\t43\t44\n2\t33\t35\t34\n2\t24\t24\t27\n2\t42\t28\t23\n2\t35\t36\t31\n2\t45\t51\t45\n2\t36\t45\t54\n2\t40\t39\t39\n2\t15\t26\t31\n2\t37\t37\t44\n2\t21\t29\t31\n2\t52\t58\t68\n2\t35\t31\t41\n2\t55\t62\t50\n2\t55\t60\t64\n2\t59\t64\t61",
                 mode="r", theme="cobalt"),
 
+            uiOutput("input_validation_status"),
+
             br(),
 
             h3("Output"),
-            verbatimTextOutput("anovakun.out"),
+            uiOutput("analysis_context"),
+            tableOutput("anova_table"),
+            downloadButton("download_results", "Download results as text"),
+            tags$details(
+                style = "margin-top: 15px;",
+                tags$summary("Technical output from ANOVA-kun"),
+                verbatimTextOutput("anovakun.out")
+            ),
+
+            br(),
+            h3("Effect Size Confidence Intervals"),
+            p("Partial eta squared and generalized eta squared are reported automatically above."),
+            actionButton(
+                "effect_size_ci",
+                "Calculate 95% CIs for effect sizes",
+                class = "btn-primary"
+            ),
+            p(
+                class = "help-block",
+                "This runs 2,000 bootstrap samples and may take about 10–20 seconds."
+            ),
+            uiOutput("effect_size_ci_status"),
+            verbatimTextOutput("effect_size_ci_out"),
 
             br(),
             h3("Plot"),
@@ -73,6 +113,8 @@ tabsetPanel(
 
             radioButtons("axis", "y-axis",
                 list("Default" = "default", "Min-Max" = "min.max", "Define" = "dfn"), selected = "default"),
+
+            checkboxInput("show_individual", "Show individual observations", TRUE),
 
             # Display this only if "Define" is checked
             conditionalPanel(condition = "input.axis == 'dfn'",
@@ -140,7 +182,6 @@ br()
             strong('List of Packages Used'), br(),
             code('library(shiny)'),br(),
             code('library(shinyAce)'),br(),
-            code('library(sciplot)'),br(),
             code('library(ggplot2)'),br(),
 
             br(),
@@ -150,7 +191,7 @@ br()
             a('"The handbook of Research in Foreign Language Learning and Teaching" (Takeuchi & Mizumoto, 2012).', href='http://mizumot.com/handbook/', target="_blank")),
 
             p('Source code for this application is based on',
-            a('anovakun.', href="http://riseki.php.xdomain.jp/index.php?ANOVA%E5%90%9B", target="_blank")),
+            a('anovakun.', href="https://riseki.cloudfree.jp/?ANOVA%E5%90%9B", target="_blank")),
 
             p('The code for this web application is available at',
             a('GitHub.', href='https://github.com/mizumot/anova', target="_blank")),

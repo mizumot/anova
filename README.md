@@ -6,7 +6,7 @@ ANOVA
 
 ### About
 You can check out this application here:
-- http://langtest.jp/shiny/anova/
+- https://langtest.jp/shiny/anova/
 
 ### Author
 [Atsushi MIZUMOTO](https://mizumot.com/ "mizumot.com"), Ph.D.   
