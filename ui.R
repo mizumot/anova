@@ -3,7 +3,23 @@ library(shinyAce)
 
 
 
-shinyUI(pageWithSidebar(
+shinyUI(tagList(
+
+    tags$head(
+        tags$style(HTML("
+            body {
+                width: 100%;
+                max-width: 1350px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            #showcase-code-position-toggle {
+                display: none !important;
+            }
+        "))
+    ),
+
+    pageWithSidebar(
 
 
     headerPanel("ANOVA"),
@@ -241,4 +257,4 @@ br()
 )
 )
 )
-))
+)))
