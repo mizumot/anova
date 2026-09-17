@@ -1,3 +1,14 @@
+.plot_font_family <- "sans"
+if (identical(Sys.info()[["sysname"]], "Darwin")) {
+    .plot_font_family <- "Hiragino Sans"
+} else if (identical(Sys.info()[["sysname"]], "Linux")) {
+    fontconfig_file <- file.path(getwd(), "fontconfig.conf")
+    if (file.exists(fontconfig_file) && dir.exists("/srv/shiny-server/.fonts")) {
+        Sys.setenv(FONTCONFIG_FILE = normalizePath(fontconfig_file))
+        .plot_font_family <- "Noto Sans CJK JP"
+    }
+}
+
 library(shiny)
 library(shinyAce)
 library(ggplot2)
@@ -554,7 +565,7 @@ shinyServer(function(input, output, session) {
                 y = labels$outcome,
                 caption = caption
             ) +
-            theme_minimal(base_size = 13) +
+            theme_minimal(base_size = 13, base_family = .plot_font_family) +
             theme(
                 panel.grid.minor = element_blank(),
                 legend.position = "top",
