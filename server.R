@@ -32,21 +32,27 @@ shinyServer(function(input, output, session) {
     input_check <- debounce(reactive({
         spec <- analysis_spec()
         if (inherits(spec, "anova_spec_error")) {
-            return(list(valid = FALSE, errors = spec$message, data = NULL))
+            return(list(valid = FALSE, errors = spec$message, data = NULL, spec = NULL))
         }
-        validate_anova_input(input$text, spec)
+        check <- validate_anova_input(input$text, spec)
+        check$spec <- spec
+        check
     }), millis = 250)
 
-    input_data <- reactive({
+    validated_state <- reactive({
         check <- input_check()
         validate(need(check$valid, paste(check$errors, collapse = "\n")))
-        check$data
+        check
     })
+
+    input_data <- reactive(validated_state()$data)
+
+    validated_spec <- reactive(validated_state()$spec)
 
     analysis_labels <- reactive({
         derive_analysis_labels(
             input_data(),
-            analysis_spec(),
+            validated_spec(),
             factor1_name = input$factor1.name,
             factor2_name = input$factor2.name,
             outcome_name = input$outcome.name
@@ -121,7 +127,7 @@ shinyServer(function(input, output, session) {
     }
 
     anova_result <- reactive({
-        spec <- analysis_spec()
+        spec <- validated_spec()
         validate(need(
             !inherits(spec, "anova_spec_error"),
             if (inherits(spec, "anova_spec_error")) spec$message else "Invalid analysis settings."
@@ -130,7 +136,7 @@ shinyServer(function(input, output, session) {
     })
 
     anova_output <- reactive({
-        spec <- analysis_spec()
+        spec <- validated_spec()
         paste(
             capture.output(run_anova(
                 input_data(),
@@ -335,7 +341,7 @@ shinyServer(function(input, output, session) {
         notes <- list(
             p(strong(details[1]), br(), details[2])
         )
-        if (analysis_spec()$design %in% c("sA", "AsB", "sAB")) {
+        if (validated_spec()$design %in% c("sA", "AsB", "sAB")) {
             notes <- c(notes, list(
                 p(class = "help-block", "Participant identifies repeated-measures error terms.")
             ))
@@ -356,11 +362,11 @@ shinyServer(function(input, output, session) {
     }, striped = TRUE, bordered = TRUE, spacing = "s", align = "lrrrrrrr")
 
     plot_long_data <- reactive({
-        to_plot_long(input_data(), analysis_spec(), analysis_labels())
+        to_plot_long(input_data(), validated_spec(), analysis_labels())
     })
 
     build_anova_plot <- function(x_factor = 1L) {
-        spec <- analysis_spec()
+        spec <- validated_spec()
         labels <- analysis_labels()
         long <- plot_long_data()
 

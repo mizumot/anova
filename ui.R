@@ -16,6 +16,51 @@ shinyUI(tagList(
             #showcase-code-position-toggle {
                 display: none !important;
             }
+            .design-cards .radio {
+                margin-top: 6px;
+                margin-bottom: 6px;
+            }
+            .design-cards .radio label {
+                display: block;
+                padding-left: 0;
+            }
+            .design-cards .radio input[type='radio'] {
+                position: absolute;
+                opacity: 0;
+            }
+            .design-cards .radio input[type='radio'] + span {
+                display: block;
+                padding: 8px 10px;
+                border: 1px solid #c8c8c8;
+                border-radius: 5px;
+                background: #ffffff;
+                cursor: pointer;
+            }
+            .design-cards .radio input[type='radio']:checked + span {
+                border-color: #337ab7;
+                background: #eef6fc;
+                box-shadow: inset 3px 0 0 #337ab7;
+            }
+            .design-cards .radio input[type='radio']:focus + span {
+                outline: 2px solid #7ab8ea;
+                outline-offset: 1px;
+            }
+            .design-choice strong,
+            .design-choice small {
+                display: block;
+            }
+            .design-choice small {
+                margin-top: 2px;
+                color: #666666;
+                line-height: 1.3;
+            }
+            .section-divider {
+                margin-top: 30px;
+                margin-bottom: 18px;
+            }
+            .plot-secondary {
+                margin-top: 32px;
+            }
         "))
     ),
 
@@ -31,8 +76,6 @@ shinyUI(tagList(
         a("anovakun.", href="https://riseki.cloudfree.jp/?ANOVA%E5%90%9B", target="_blank"),
         ''),
 
-        br(),
-
         p(HTML("<hr>")),
 
 
@@ -41,12 +84,49 @@ shinyUI(tagList(
                     "Two-way ANOVA" = "twoway"), selected = "twoway"),
                 conditionalPanel(
                         condition = "input.factor == 'oneway'",
-                        selectInput("one.design", "Design:",
-                        list("Between", "Within"))),
+                        div(
+                            class = "design-cards",
+                            radioButtons(
+                                "one.design",
+                                "Design:",
+                                choiceNames = list(
+                                    div(class = "design-choice",
+                                        strong("Between participants"),
+                                        tags$small("Independent groups.")),
+                                    div(class = "design-choice",
+                                        strong("Within participants"),
+                                        tags$small("Repeated measurements."))
+                                ),
+                                choiceValues = c("Between", "Within"),
+                                selected = "Between"
+                            )
+                        )),
                 conditionalPanel(
                         condition = "input.factor == 'twoway'",
-                        selectInput("two.design", "Design:",
-                        list("Factor1Between_Factor2Between", "Factor1Between_Factor2Within", "Factor1Within_Factor2Within"), 'Factor1Between_Factor2Within')
+                        div(
+                            class = "design-cards",
+                            radioButtons(
+                                "two.design",
+                                "Design:",
+                                choiceNames = list(
+                                    div(class = "design-choice",
+                                        strong("Between × Between"),
+                                        tags$small("Independent groups for both factors.")),
+                                    div(class = "design-choice",
+                                        strong("Between × Within"),
+                                        tags$small("Independent groups with repeated measurements.")),
+                                    div(class = "design-choice",
+                                        strong("Within × Within"),
+                                        tags$small("Repeated measurements for both factors."))
+                                ),
+                                choiceValues = c(
+                                    "Factor1Between_Factor2Between",
+                                    "Factor1Between_Factor2Within",
+                                    "Factor1Within_Factor2Within"
+                                ),
+                                selected = "Factor1Between_Factor2Within"
+                            )
+                        )
                 ),
         br(),
 
@@ -123,7 +203,7 @@ tabsetPanel(
             uiOutput("effect_size_ci_status"),
             verbatimTextOutput("effect_size_ci_out"),
 
-            br(),
+            tags$hr(class = "section-divider"),
             h3("Plot"),
             br(),
 
@@ -139,7 +219,13 @@ tabsetPanel(
             ),
 
             plotOutput("AnovaPlot1", width="80%"),
-            plotOutput("AnovaPlot2", width="80%")
+            conditionalPanel(
+                condition = "input.factor == 'twoway'",
+                div(
+                    class = "plot-secondary",
+                    plotOutput("AnovaPlot2", width="80%")
+                )
+            )
 
             ),
 
